@@ -1,23 +1,42 @@
 import { useRef, useState } from 'react'
 import '../App.css'
-// import { useNavigate } from 'react-router-dom';
-import { getLicenseKey, setLicenseKey } from '../data/IPCMessages';
+import { useNavigate } from 'react-router-dom';
+import { useLicenseKey } from './LicenseKeyProvider';
 
 function LicenseKeyEntry() {
-  const [errorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const errorMessageLabel = useRef<HTMLLabelElement>(null);
   const licenseKeyRef = useRef<HTMLInputElement>(null);
+
+  const licenseKey = useLicenseKey();
+  const navigate = useNavigate();
 
   const handleActivateLicenseKey = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     event.preventDefault();
 
-    const licenseKey = await getLicenseKey();
+    if (licenseKeyRef.current) {
+      let licenseKeyValue = licenseKeyRef.current.value;
 
-    if (!licenseKey) {
-      setLicenseKey("TEST");
+      licenseKeyValue = licenseKeyValue.replace(/\s/g, '');
+
+      if (licenseKeyValue === '') {
+        setErrorMessage('License key cannot be empty.');
+        return;
+      }
+
+      try {
+        const response = await licenseKey.handleActivateLicenseKey(licenseKeyValue);
+
+        if (response.error) {
+          setErrorMessage(response.errorMessage);
+          return;
+        } else {
+          navigate('/app');
+        }
+      } catch (error: any) {
+        setErrorMessage(error.message);
+      }
     }
-
-    console.log(licenseKey)
   }
 
 
@@ -28,7 +47,7 @@ function LicenseKeyEntry() {
         <form className="space-y-4">
           <div>
             <label className="label">
-              <span className="text-base label-text">Please enter  your license key</span>
+              <span className="text-base label-text">Please enter your license key</span>
             </label>
             <input ref={licenseKeyRef} type="text" placeholder="License key" className="w-full input input-bordered input-primary" />
           </div>
